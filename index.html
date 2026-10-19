@@ -40,9 +40,10 @@
             const [unit, setUnit] = useState('');
             const [kategori, setKategori] = useState('Cuti');
             
-            // Nama Narasumber Default
+            // Daftar Narasumber
             const narsum1 = 'Ade Jajang Jatnika Wiralaksana, SH, MH';
             const narsum2 = 'Kharisma Triyogo, SH, M.A';
+            const narsum3 = 'Dr. Mila Novita, S.Si., M.SE.';
             const [narasumber, setNarasumber] = useState(narsum1);
             
             const [pertanyaan, setPertanyaan] = useState('');
@@ -234,7 +235,7 @@
                                     </div>
                                 </div>
 
-                                {/* Pilihan Narasumber (1 Kolom agar teks panjang tidak terpotong) */}
+                                {/* Pilihan Narasumber (3 Pilihan) */}
                                 <div className="space-y-2">
                                     <label className="block text-sm font-semibold text-slate-700">Tujukan Kepada (Narasumber)</label>
                                     <div className="grid grid-cols-1 gap-3">
@@ -263,6 +264,19 @@
                                                 <p className="text-xs text-slate-500 mt-1 leading-relaxed">Analis SDM Aparatur Ahli Madya dari Direktorat Kinerja dan Pemberhentian ASN</p>
                                             </div>
                                             {narasumber === narsum2 && <div className="absolute right-4 text-indigo-500"><i className="fas fa-check-circle text-xl"></i></div>}
+                                        </label>
+
+                                        {/* Card Narasumber 3 */}
+                                        <label className={`relative flex items-center p-4 border rounded-xl cursor-pointer transition-all ${narasumber === narsum3 ? 'bg-indigo-50 border-indigo-400 ring-1 ring-indigo-400' : 'bg-white border-slate-200 hover:bg-slate-50'}`}>
+                                            <input type="radio" name="narasumber" value={narsum3} checked={narasumber === narsum3} onChange={(e) => setNarasumber(e.target.value)} className="hidden" />
+                                            <div className={`w-12 h-12 rounded-full flex items-center justify-center mr-4 flex-shrink-0 ${narasumber === narsum3 ? 'bg-indigo-500 text-white shadow-md' : 'bg-slate-100 text-slate-400'}`}>
+                                                <i className="fas fa-user-tie text-lg"></i>
+                                            </div>
+                                            <div className="pr-8">
+                                                <p className={`text-sm font-bold ${narasumber === narsum3 ? 'text-indigo-800' : 'text-slate-700'}`}>Dr. Mila Novita, S.Si., M.SE.</p>
+                                                <p className="text-xs text-slate-500 mt-1 leading-relaxed">Analisis Kebijakan Ahli Madya Sekretariat Direktorat Jenderal GTK</p>
+                                            </div>
+                                            {narasumber === narsum3 && <div className="absolute right-4 text-indigo-500"><i className="fas fa-check-circle text-xl"></i></div>}
                                         </label>
 
                                     </div>
