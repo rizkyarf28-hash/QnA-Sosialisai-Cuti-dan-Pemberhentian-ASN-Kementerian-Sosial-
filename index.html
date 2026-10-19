@@ -52,7 +52,7 @@
                 const subscription = supabase
                     .channel('public:qna_questions')
                     .on('postgres_changes', { event: '*', schema: 'public', table: 'qna_questions' }, (payload) => {
-                        fetchQuestions(); // Refresh data ketika ada perubahan (tambah/hapus/upvote)
+                        fetchQuestions();
                     })
                     .subscribe();
 
@@ -104,7 +104,6 @@
 
                     if (error) throw error;
 
-                    // Reset form
                     setPertanyaan('');
                     alert('Pertanyaan berhasil dikirim!');
                 } catch (error) {
@@ -148,21 +147,80 @@
                 }
             };
 
+            // ==========================================
+            // 6. FUNGSI EXPORT DATA KE CSV/EXCEL
+            // ==========================================
+            const exportToCSV = () => {
+                if (questions.length === 0) {
+                    alert('Belum ada pertanyaan untuk diekspor.');
+                    return;
+                }
+
+                // Header tabel menggunakan pemisah titik koma (;) khusus untuk Excel Indonesia
+                const headers = ['Waktu', 'Nama Lengkap', 'Unit Kerja', 'Kategori', 'Pertanyaan', 'Jumlah Upvote'];
+                const csvRows = [headers.join(';')]; 
+
+                questions.forEach(q => {
+                    const date = new Date(q.created_at).toLocaleString('id-ID');
+                    
+                    // Membersihkan teks dari enter atau tanda kutip ganda yang bisa merusak baris
+                    const cleanName = `"${(q.nama || '').replace(/"/g, '""')}"`;
+                    const cleanUnit = `"${(q.unit || '').replace(/"/g, '""')}"`;
+                    const cleanKategori = `"${(q.kategori || '').replace(/"/g, '""')}"`;
+                    const cleanPertanyaan = `"${(q.pertanyaan || '').replace(/"/g, '""').replace(/\n/g, ' ')}"`;
+                    
+                    const row = [
+                        `"${date}"`,
+                        cleanName,
+                        cleanUnit,
+                        cleanKategori,
+                        cleanPertanyaan,
+                        q.upvotes
+                    ];
+                    
+                    csvRows.push(row.join(';'));
+                });
+
+                // Menambahkan BOM (\uFEFF) agar Excel membaca file ini sebagai UTF-8 secara sempurna
+                const csvContent = '\uFEFF' + csvRows.join('\n');
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                
+                const link = document.createElement('a');
+                link.setAttribute('href', url);
+                link.setAttribute('download', `Data_QnA_Kepegawaian.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            };
+
             return (
                 <div className="max-w-2xl mx-auto p-4 md:p-6 flex flex-col min-h-screen">
                     {/* Header */}
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 mb-6 flex justify-between items-center">
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div>
                             <h1 className="text-2xl font-bold text-slate-800">Q&A Kepegawaian</h1>
                             <p className="text-slate-500 text-sm mt-1">Sesi Tanya Jawab: Cuti & Pemberhentian</p>
                         </div>
-                        <button 
-                            onClick={() => setIsAdmin(!isAdmin)}
-                            className={`p-2 rounded-lg text-sm font-medium transition-colors ${isAdmin ? 'bg-red-100 text-red-600' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
-                        >
-                            <i className={`fas ${isAdmin ? 'fa-lock-open' : 'fa-lock'} mr-2`}></i>
-                            {isAdmin ? 'Mode Admin' : 'Admin'}
-                        </button>
+                        <div className="flex gap-2">
+                            {/* Tombol Export Muncul Hanya Saat Mode Admin */}
+                            {isAdmin && (
+                                <button 
+                                    onClick={exportToCSV}
+                                    className="p-2 px-4 rounded-lg text-sm font-medium bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors flex items-center"
+                                >
+                                    <i className="fas fa-file-excel mr-2"></i> Export Data
+                                </button>
+                            )}
+                            
+                            <button 
+                                onClick={() => setIsAdmin(!isAdmin)}
+                                className={`p-2 px-4 rounded-lg text-sm font-medium transition-colors flex items-center ${isAdmin ? 'bg-red-100 text-red-600 hover:bg-red-100' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                            >
+                                <i className={`fas ${isAdmin ? 'fa-lock-open' : 'fa-lock'} mr-2`}></i>
+                                {isAdmin ? 'Tutup Admin' : 'Admin'}
+                            </button>
+                        </div>
                     </div>
 
                     {/* Form Input */}
