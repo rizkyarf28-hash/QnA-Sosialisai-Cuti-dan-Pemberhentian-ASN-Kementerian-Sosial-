@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Q&A Kepegawaian</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800 font-sans">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // ==========================================
+        // 1. KONFIGURASI SUPABASE 
+        // ==========================================
+        const SUPABASE_URL = 'https://kaekedgiettjyaatywcs.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_o1Yk4Zbq5KfGpurQo9ouxw_WuMCZVxD';
+        
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const { useState, useEffect } = React;
+
+        function App() {
+            const [questions, setQuestions] = useState([]);
+            const [isAdmin, setIsAdmin] = useState(false);
+            const [loading, setLoading] = useState(true);
+
+            // Form State
+            const [nama, setNama] = useState('');
+            const [unit, setUnit] = useState('');
+            const [kategori, setKategori] = useState('Cuti');
+            const [pertanyaan, setPertanyaan] = useState('');
+            const [isSubmitting, setIsSubmitting] = useState(false);
+
+            // ==========================================
+            // 2. MENGAMBIL DATA & REAL-TIME LISTENER
+            // ==========================================
+            useEffect(() => {
+                fetchQuestions();
+
+                // Mendengarkan perubahan data secara real-time dari Supabase
+                const subscription = supabase
+                    .channel('public:qna_questions')
+                    .on('postgres_changes', { event: '*', schema: 'public', table: 'qna_questions' }, (payload) => {
+                        fetchQuestions(); // Refresh data ketika ada perubahan (tambah/hapus/upvote)
+                    })
+                    .subscribe();
+
+                return () => {
+                    supabase.removeChannel(subscription);
+                };
+            }, []);
+
+            const fetchQuestions = async () => {
+                try {
+                    const { data, error } = await supabase
+                        .from('qna_questions')
+                        .select('*')
+                        .order('upvotes', { ascending: false })
+                        .order('created_at', { ascending: false });
+                    
+                    if (error) throw error;
+                    setQuestions(data || []);
+                } catch (error) {
+                    console.error('Gagal mengambil data:', error.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            // ==========================================
+            // 3. FUNGSI KIRIM PERTANYAAN
+            // ==========================================
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                if (!nama || !unit || !pertanyaan) {
+                    alert('Mohon lengkapi Nama, Unit, dan Pertanyaan.');
+                    return;
+                }
+                
+                setIsSubmitting(true);
+                try {
+                    const { error } = await supabase
+                        .from('qna_questions')
+                        .insert([
+                            { 
+                                nama: nama, 
+                                unit: unit, 
+                                kategori: kategori, 
+                                pertanyaan: pertanyaan, 
+                                upvotes: 0 
+                            }
+                        ]);
+
+                    if (error) throw error;
+
+                    // Reset form
+                    setPertanyaan('');
+                    alert('Pertanyaan berhasil dikirim!');
+                } catch (error) {
+                    alert('Gagal mengirim pertanyaan: ' + error.message);
+                } finally {
+                    setIsSubmitting(false);
+                }
+            };
+
+            // ==========================================
+            // 4. FUNGSI UPVOTE
+            // ==========================================
+            const handleUpvote = async (id, currentUpvotes) => {
+                try {
+                    const { error } = await supabase
+                        .from('qna_questions')
+                        .update({ upvotes: currentUpvotes + 1 })
+                        .eq('id', id);
+                        
+                    if (error) throw error;
+                } catch (error) {
+                    console.error('Gagal melakukan upvote:', error.message);
+                }
+            };
+
+            // ==========================================
+            // 5. FUNGSI HAPUS (ADMIN)
+            // ==========================================
+            const handleDelete = async (id) => {
+                if (!confirm('Apakah Anda yakin ingin menghapus pertanyaan ini?')) return;
+                
+                try {
+                    const { error } = await supabase
+                        .from('qna_questions')
+                        .delete()
+                        .eq('id', id);
+                        
+                    if (error) throw error;
+                } catch (error) {
+                    alert('Gagal menghapus pertanyaan: ' + error.message);
+                }
+            };
+
+            return (
+                <div className="max-w-2xl mx-auto p-4 md:p-6 flex flex-col min-h-screen">
+                    {/* Header */}
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 mb-6 flex justify-between items-center">
+                        <div>
+                            <h1 className="text-2xl font-bold text-slate-800">Q&A Kepegawaian</h1>
+                            <p className="text-slate-500 text-sm mt-1">Sesi Tanya Jawab: Cuti & Pemberhentian</p>
+                        </div>
+                        <button 
+                            onClick={() => setIsAdmin(!isAdmin)}
+                            className={`p-2 rounded-lg text-sm font-medium transition-colors ${isAdmin ? 'bg-red-100 text-red-600' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                        >
+                            <i className={`fas ${isAdmin ? 'fa-lock-open' : 'fa-lock'} mr-2`}></i>
+                            {isAdmin ? 'Mode Admin' : 'Admin'}
+                        </button>
+                    </div>
+
+                    {/* Form Input */}
+                    {!isAdmin && (
+                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 mb-8 relative overflow-hidden">
+                            <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
+                            <h2 className="text-lg font-semibold mb-4 text-slate-800">Tanyakan Sesuatu</h2>
+                            <form onSubmit={handleSubmit} className="space-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-600 mb-1">Nama Lengkap</label>
+                                        <input type="text" value={nama} onChange={e => setNama(e.target.value)} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all" placeholder="Masukkan nama..." required />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-600 mb-1">Unit Kerja</label>
+                                        <input type="text" value={unit} onChange={e => setUnit(e.target.value)} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all" placeholder="Contoh: Biro SDM..." required />
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-600 mb-2">Kategori Topik</label>
+                                    <div className="flex gap-4">
+                                        <label className="flex items-center cursor-pointer">
+                                            <input type="radio" name="kategori" value="Cuti" checked={kategori === 'Cuti'} onChange={() => setKategori('Cuti')} className="w-4 h-4 text-blue-600 focus:ring-blue-500 cursor-pointer" />
+                                            <span className="ml-2 text-slate-700">Cuti</span>
+                                        </label>
+                                        <label className="flex items-center cursor-pointer">
+                                            <input type="radio" name="kategori" value="Pemberhentian" checked={kategori === 'Pemberhentian'} onChange={() => setKategori('Pemberhentian')} className="w-4 h-4 text-rose-600 focus:ring-rose-500 cursor-pointer" />
+                                            <span className="ml-2 text-slate-700">Pemberhentian</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-600 mb-1">Pertanyaan Anda</label>
+                                    <textarea value={pertanyaan} onChange={e => setPertanyaan(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all resize-none" rows="3" placeholder="Tuliskan pertanyaan Anda secara jelas..." required></textarea>
+                                </div>
+
+                                <button type="submit" disabled={isSubmitting} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center disabled:opacity-70">
+                                    {isSubmitting ? (
+                                        <><i className="fas fa-circle-notch fa-spin mr-2"></i> Mengirim...</>
+                                    ) : (
+                                        <><i className="fas fa-paper-plane mr-2"></i> Kirim Pertanyaan</>
+                                    )}
+                                </button>
+                            </form>
+                        </div>
+                    )}
+
+                    {/* Daftar Pertanyaan */}
+                    <div className="flex-1">
+                        <div className="flex justify-between items-end mb-4 px-1">
+                            <h2 className="text-lg font-semibold text-slate-800">Daftar Pertanyaan <span className="text-slate-400 font-normal text-sm ml-1">({questions.length})</span></h2>
+                            <span className="text-xs text-slate-500"><i className="fas fa-fire text-orange-500 mr-1"></i> Terpopuler</span>
+                        </div>
+
+                        {loading ? (
+                            <div className="text-center py-10 text-slate-500">
+                                <i className="fas fa-circle-notch fa-spin text-2xl mb-2 text-blue-500"></i>
+                                <p>Memuat pertanyaan...</p>
+                            </div>
+                        ) : questions.length === 0 ? (
+                            <div className="text-center py-12 bg-white rounded-2xl border border-slate-100 border-dashed">
+                                <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <i className="fas fa-inbox text-2xl text-slate-300"></i>
+                                </div>
+                                <p className="text-slate-500">Belum ada pertanyaan yang masuk.</p>
+                                <p className="text-sm text-slate-400 mt-1">Jadilah yang pertama bertanya!</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {questions.map((q) => (
+                                    <div key={q.id} className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex gap-4 transition-all hover:shadow-md">
+                                        {/* Bagian Kiri: Upvote */}
+                                        <div className="flex flex-col items-center min-w-[50px]">
+                                            <button onClick={() => handleUpvote(q.id, q.upvotes)} className="w-10 h-10 rounded-full bg-slate-50 text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors flex items-center justify-center border border-slate-100">
+                                                <i className="fas fa-caret-up text-2xl"></i>
+                                            </button>
+                                            <span className="font-bold text-slate-700 mt-1">{q.upvotes}</span>
+                                        </div>
+
+                                        {/* Bagian Kanan: Konten */}
+                                        <div className="flex-1">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <div>
+                                                    <h3 className="font-bold text-slate-800">{q.nama}</h3>
+                                                    <p className="text-xs text-slate-500"><i className="fas fa-building mr-1"></i> {q.unit}</p>
+                                                </div>
+                                                <div className="flex flex-col items-end gap-2">
+                                                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${q.kategori === 'Cuti' ? 'bg-blue-100 text-blue-700' : 'bg-rose-100 text-rose-700'}`}>
+                                                        {q.kategori}
+                                                    </span>
+                                                    {isAdmin && (
+                                                        <button onClick={() => handleDelete(q.id)} className="text-xs text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 px-2 py-1 rounded transition-colors">
+                                                            <i className="fas fa-trash-alt mr-1"></i> Hapus
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <p className="text-slate-700 mt-2 leading-relaxed">{q.pertanyaan}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Footer */}
+                    <footer className="mt-12 py-6 text-center border-t border-slate-200">
+                        <p className="text-sm text-slate-500 font-medium tracking-wide">
+                            &copy; {new Date().getFullYear()} Sistem Berinovasi. Hak Cipta Muhammad Rizky Arfiansyah.
+                        </p>
+                    </footer>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
