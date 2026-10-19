@@ -16,7 +16,7 @@
     <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="bg-slate-50 min-h-screen text-slate-800 font-sans">
+<body class="bg-gradient-to-br from-slate-50 to-blue-50/50 min-h-screen text-slate-800 font-sans pb-10">
     <div id="root"></div>
 
     <script type="text/babel">
@@ -39,6 +39,7 @@
             const [nama, setNama] = useState('');
             const [unit, setUnit] = useState('');
             const [kategori, setKategori] = useState('Cuti');
+            const [narasumber, setNarasumber] = useState('Narasumber 1'); // State Baru
             const [pertanyaan, setPertanyaan] = useState('');
             const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -47,8 +48,6 @@
             // ==========================================
             useEffect(() => {
                 fetchQuestions();
-
-                // Mendengarkan perubahan data secara real-time dari Supabase
                 const subscription = supabase
                     .channel('public:qna_questions')
                     .on('postgres_changes', { event: '*', schema: 'public', table: 'qna_questions' }, (payload) => {
@@ -56,9 +55,7 @@
                     })
                     .subscribe();
 
-                return () => {
-                    supabase.removeChannel(subscription);
-                };
+                return () => supabase.removeChannel(subscription);
             }, []);
 
             const fetchQuestions = async () => {
@@ -84,7 +81,7 @@
             const handleSubmit = async (e) => {
                 e.preventDefault();
                 if (!nama || !unit || !pertanyaan) {
-                    alert('Mohon lengkapi Nama, Unit, dan Pertanyaan.');
+                    alert('Mohon lengkapi Nama, Unit, dan Pertanyaan Anda.');
                     return;
                 }
                 
@@ -97,6 +94,7 @@
                                 nama: nama, 
                                 unit: unit, 
                                 kategori: kategori, 
+                                narasumber: narasumber, // Insert Data Baru
                                 pertanyaan: pertanyaan, 
                                 upvotes: 0 
                             }
@@ -114,81 +112,49 @@
             };
 
             // ==========================================
-            // 4. FUNGSI UPVOTE
+            // 4. FUNGSI UPVOTE & HAPUS
             // ==========================================
             const handleUpvote = async (id, currentUpvotes) => {
                 try {
-                    const { error } = await supabase
-                        .from('qna_questions')
-                        .update({ upvotes: currentUpvotes + 1 })
-                        .eq('id', id);
-                        
-                    if (error) throw error;
-                } catch (error) {
-                    console.error('Gagal melakukan upvote:', error.message);
-                }
+                    await supabase.from('qna_questions').update({ upvotes: currentUpvotes + 1 }).eq('id', id);
+                } catch (error) { console.error('Error:', error.message); }
             };
 
-            // ==========================================
-            // 5. FUNGSI HAPUS (ADMIN)
-            // ==========================================
             const handleDelete = async (id) => {
-                if (!confirm('Apakah Anda yakin ingin menghapus pertanyaan ini?')) return;
-                
+                if (!confirm('Hapus pertanyaan ini?')) return;
                 try {
-                    const { error } = await supabase
-                        .from('qna_questions')
-                        .delete()
-                        .eq('id', id);
-                        
-                    if (error) throw error;
-                } catch (error) {
-                    alert('Gagal menghapus pertanyaan: ' + error.message);
-                }
+                    await supabase.from('qna_questions').delete().eq('id', id);
+                } catch (error) { alert('Error: ' + error.message); }
             };
 
             // ==========================================
-            // 6. FUNGSI EXPORT DATA KE CSV/EXCEL
+            // 5. FUNGSI EXPORT DATA KE CSV
             // ==========================================
             const exportToCSV = () => {
-                if (questions.length === 0) {
-                    alert('Belum ada pertanyaan untuk diekspor.');
-                    return;
-                }
+                if (questions.length === 0) return alert('Belum ada pertanyaan.');
 
-                // Header tabel menggunakan pemisah titik koma (;) khusus untuk Excel Indonesia
-                const headers = ['Waktu', 'Nama Lengkap', 'Unit Kerja', 'Kategori', 'Pertanyaan', 'Jumlah Upvote'];
+                // Header update dengan tambahan kolom Tujuan Narasumber
+                const headers = ['Waktu', 'Nama Lengkap', 'Unit Kerja', 'Kategori', 'Tujuan Narasumber', 'Pertanyaan', 'Jumlah Upvote'];
                 const csvRows = [headers.join(';')]; 
 
                 questions.forEach(q => {
                     const date = new Date(q.created_at).toLocaleString('id-ID');
                     
-                    // Membersihkan teks dari enter atau tanda kutip ganda yang bisa merusak baris
                     const cleanName = `"${(q.nama || '').replace(/"/g, '""')}"`;
                     const cleanUnit = `"${(q.unit || '').replace(/"/g, '""')}"`;
                     const cleanKategori = `"${(q.kategori || '').replace(/"/g, '""')}"`;
+                    const cleanNarasumber = `"${(q.narasumber || '').replace(/"/g, '""')}"`;
                     const cleanPertanyaan = `"${(q.pertanyaan || '').replace(/"/g, '""').replace(/\n/g, ' ')}"`;
                     
-                    const row = [
-                        `"${date}"`,
-                        cleanName,
-                        cleanUnit,
-                        cleanKategori,
-                        cleanPertanyaan,
-                        q.upvotes
-                    ];
-                    
+                    const row = [ `"${date}"`, cleanName, cleanUnit, cleanKategori, cleanNarasumber, cleanPertanyaan, q.upvotes ];
                     csvRows.push(row.join(';'));
                 });
 
-                // Menambahkan BOM (\uFEFF) agar Excel membaca file ini sebagai UTF-8 secara sempurna
                 const csvContent = '\uFEFF' + csvRows.join('\n');
                 const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                const url = URL.createObjectURL(blob);
-                
                 const link = document.createElement('a');
-                link.setAttribute('href', url);
-                link.setAttribute('download', `Data_QnA_Kepegawaian.csv`);
+                link.href = URL.createObjectURL(blob);
+                link.download = `Data_QnA_Sosialisasi.csv`;
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
@@ -196,131 +162,185 @@
 
             return (
                 <div className="max-w-2xl mx-auto p-4 md:p-6 flex flex-col min-h-screen">
-                    {/* Header */}
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    
+                    {/* --- HEADER --- */}
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
                         <div>
-                            <h1 className="text-2xl font-bold text-slate-800">Q&A Kepegawaian</h1>
-                            <p className="text-slate-500 text-sm mt-1">Sesi Tanya Jawab: Cuti & Pemberhentian</p>
+                            <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Sosialisasi Kepegawaian</h1>
+                            <p className="text-slate-500 text-sm mt-1 flex items-center gap-2">
+                                <i className="fas fa-comments text-blue-400"></i> Sesi Tanya Jawab Terbuka
+                            </p>
                         </div>
                         <div className="flex gap-2">
-                            {/* Tombol Export Muncul Hanya Saat Mode Admin */}
                             {isAdmin && (
-                                <button 
-                                    onClick={exportToCSV}
-                                    className="p-2 px-4 rounded-lg text-sm font-medium bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors flex items-center"
-                                >
-                                    <i className="fas fa-file-excel mr-2"></i> Export Data
+                                <button onClick={exportToCSV} className="p-2 px-4 rounded-xl text-sm font-medium bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors flex items-center border border-emerald-100">
+                                    <i className="fas fa-file-excel mr-2"></i> Export
                                 </button>
                             )}
-                            
-                            <button 
-                                onClick={() => setIsAdmin(!isAdmin)}
-                                className={`p-2 px-4 rounded-lg text-sm font-medium transition-colors flex items-center ${isAdmin ? 'bg-red-100 text-red-600 hover:bg-red-100' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
-                            >
+                            <button onClick={() => setIsAdmin(!isAdmin)} className={`p-2 px-4 rounded-xl text-sm font-medium transition-colors flex items-center border ${isAdmin ? 'bg-red-50 text-red-600 border-red-100' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}>
                                 <i className={`fas ${isAdmin ? 'fa-lock-open' : 'fa-lock'} mr-2`}></i>
                                 {isAdmin ? 'Tutup Admin' : 'Admin'}
                             </button>
                         </div>
                     </div>
 
-                    {/* Form Input */}
+                    {/* --- FORM INPUT --- */}
                     {!isAdmin && (
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 mb-8 relative overflow-hidden">
-                            <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
-                            <h2 className="text-lg font-semibold mb-4 text-slate-800">Tanyakan Sesuatu</h2>
-                            <form onSubmit={handleSubmit} className="space-y-4">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-600 mb-1">Nama Lengkap</label>
-                                        <input type="text" value={nama} onChange={e => setNama(e.target.value)} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all" placeholder="Masukkan nama..." required />
+                        <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-100 mb-8">
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
+                                    <i className="fas fa-pen text-lg"></i>
+                                </div>
+                                <h2 className="text-xl font-bold text-slate-800">Tanyakan Sesuatu</h2>
+                            </div>
+                            
+                            <form onSubmit={handleSubmit} className="space-y-6">
+                                
+                                {/* Info Peserta */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                    <div className="space-y-1.5">
+                                        <label className="block text-sm font-semibold text-slate-700">Nama Lengkap</label>
+                                        <input type="text" value={nama} onChange={e => setNama(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all text-sm" placeholder="Ketik nama Anda..." required />
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-600 mb-1">Unit Kerja</label>
-                                        <input type="text" value={unit} onChange={e => setUnit(e.target.value)} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all" placeholder="Contoh: Biro SDM..." required />
+                                    <div className="space-y-1.5">
+                                        <label className="block text-sm font-semibold text-slate-700">Unit Kerja</label>
+                                        <input type="text" value={unit} onChange={e => setUnit(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all text-sm" placeholder="Contoh: Biro SDM..." required />
                                     </div>
                                 </div>
                                 
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-600 mb-2">Kategori Topik</label>
-                                    <div className="flex gap-4">
-                                        <label className="flex items-center cursor-pointer">
-                                            <input type="radio" name="kategori" value="Cuti" checked={kategori === 'Cuti'} onChange={() => setKategori('Cuti')} className="w-4 h-4 text-blue-600 focus:ring-blue-500 cursor-pointer" />
-                                            <span className="ml-2 text-slate-700">Cuti</span>
+                                {/* Kategori Topik (Desain Card) */}
+                                <div className="space-y-2">
+                                    <label className="block text-sm font-semibold text-slate-700">Kategori Topik</label>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <label className={`relative flex items-center p-3 border rounded-xl cursor-pointer transition-all ${kategori === 'Cuti' ? 'bg-blue-50 border-blue-400 shadow-sm' : 'bg-white border-slate-200 hover:bg-slate-50'}`}>
+                                            <input type="radio" name="kategori" value="Cuti" checked={kategori === 'Cuti'} onChange={() => setKategori('Cuti')} className="w-4 h-4 text-blue-600 ml-1 border-slate-300 focus:ring-blue-500" />
+                                            <span className={`ml-3 text-sm font-medium ${kategori === 'Cuti' ? 'text-blue-800' : 'text-slate-600'}`}>Seputar Cuti</span>
                                         </label>
-                                        <label className="flex items-center cursor-pointer">
-                                            <input type="radio" name="kategori" value="Pemberhentian" checked={kategori === 'Pemberhentian'} onChange={() => setKategori('Pemberhentian')} className="w-4 h-4 text-rose-600 focus:ring-rose-500 cursor-pointer" />
-                                            <span className="ml-2 text-slate-700">Pemberhentian</span>
+                                        <label className={`relative flex items-center p-3 border rounded-xl cursor-pointer transition-all ${kategori === 'Pemberhentian' ? 'bg-rose-50 border-rose-400 shadow-sm' : 'bg-white border-slate-200 hover:bg-slate-50'}`}>
+                                            <input type="radio" name="kategori" value="Pemberhentian" checked={kategori === 'Pemberhentian'} onChange={() => setKategori('Pemberhentian')} className="w-4 h-4 text-rose-500 ml-1 border-slate-300 focus:ring-rose-500" />
+                                            <span className={`ml-3 text-sm font-medium ${kategori === 'Pemberhentian' ? 'text-rose-800' : 'text-slate-600'}`}>Pemberhentian</span>
                                         </label>
                                     </div>
                                 </div>
 
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-600 mb-1">Pertanyaan Anda</label>
-                                    <textarea value={pertanyaan} onChange={e => setPertanyaan(e.target.value)} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all resize-none" rows="3" placeholder="Tuliskan pertanyaan Anda secara jelas..." required></textarea>
+                                {/* Pilihan Narasumber (Desain Card) */}
+                                <div className="space-y-2">
+                                    <label className="block text-sm font-semibold text-slate-700">Tujukan Kepada (Narasumber)</label>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        
+                                        {/* Card Narasumber 1 */}
+                                        <label className={`relative flex items-center p-3 border rounded-xl cursor-pointer transition-all ${narasumber === 'Narasumber 1' ? 'bg-indigo-50 border-indigo-400 ring-1 ring-indigo-400' : 'bg-white border-slate-200 hover:bg-slate-50'}`}>
+                                            <input type="radio" name="narasumber" value="Narasumber 1" checked={narasumber === 'Narasumber 1'} onChange={(e) => setNarasumber(e.target.value)} className="hidden" />
+                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center mr-3 ${narasumber === 'Narasumber 1' ? 'bg-indigo-500 text-white shadow-md' : 'bg-slate-100 text-slate-400'}`}>
+                                                <i className="fas fa-user-tie"></i>
+                                            </div>
+                                            <div>
+                                                <p className={`text-sm font-bold ${narasumber === 'Narasumber 1' ? 'text-indigo-800' : 'text-slate-700'}`}>Bapak / Ibu Narasumber 1</p>
+                                                <p className="text-xs text-slate-500">Pakar Kebijakan</p>
+                                            </div>
+                                            {narasumber === 'Narasumber 1' && <div className="absolute right-3 text-indigo-500"><i className="fas fa-check-circle"></i></div>}
+                                        </label>
+
+                                        {/* Card Narasumber 2 */}
+                                        <label className={`relative flex items-center p-3 border rounded-xl cursor-pointer transition-all ${narasumber === 'Narasumber 2' ? 'bg-indigo-50 border-indigo-400 ring-1 ring-indigo-400' : 'bg-white border-slate-200 hover:bg-slate-50'}`}>
+                                            <input type="radio" name="narasumber" value="Narasumber 2" checked={narasumber === 'Narasumber 2'} onChange={(e) => setNarasumber(e.target.value)} className="hidden" />
+                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center mr-3 ${narasumber === 'Narasumber 2' ? 'bg-indigo-500 text-white shadow-md' : 'bg-slate-100 text-slate-400'}`}>
+                                                <i className="fas fa-user-tie"></i>
+                                            </div>
+                                            <div>
+                                                <p className={`text-sm font-bold ${narasumber === 'Narasumber 2' ? 'text-indigo-800' : 'text-slate-700'}`}>Bapak / Ibu Narasumber 2</p>
+                                                <p className="text-xs text-slate-500">Praktisi SDM</p>
+                                            </div>
+                                            {narasumber === 'Narasumber 2' && <div className="absolute right-3 text-indigo-500"><i className="fas fa-check-circle"></i></div>}
+                                        </label>
+
+                                    </div>
                                 </div>
 
-                                <button type="submit" disabled={isSubmitting} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center disabled:opacity-70">
+                                {/* Textarea Pertanyaan */}
+                                <div className="space-y-1.5">
+                                    <label className="block text-sm font-semibold text-slate-700">Pertanyaan Anda</label>
+                                    <textarea value={pertanyaan} onChange={e => setPertanyaan(e.target.value)} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all resize-none text-sm leading-relaxed" rows="4" placeholder="Ketik pertanyaan Anda secara detail di sini..." required></textarea>
+                                </div>
+
+                                <button type="submit" disabled={isSubmitting} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3.5 px-4 rounded-xl transition-all shadow-md shadow-blue-500/30 flex items-center justify-center disabled:opacity-70 disabled:shadow-none hover:-translate-y-0.5 active:translate-y-0">
                                     {isSubmitting ? (
-                                        <><i className="fas fa-circle-notch fa-spin mr-2"></i> Mengirim...</>
+                                        <><i className="fas fa-circle-notch fa-spin mr-2"></i> Mengirim Data...</>
                                     ) : (
-                                        <><i className="fas fa-paper-plane mr-2"></i> Kirim Pertanyaan</>
+                                        <><i className="fas fa-paper-plane mr-2"></i> Kirim Pertanyaan Sekarang</>
                                     )}
                                 </button>
                             </form>
                         </div>
                     )}
 
-                    {/* Daftar Pertanyaan */}
-                    <div className="flex-1">
-                        <div className="flex justify-between items-end mb-4 px-1">
-                            <h2 className="text-lg font-semibold text-slate-800">Daftar Pertanyaan <span className="text-slate-400 font-normal text-sm ml-1">({questions.length})</span></h2>
-                            <span className="text-xs text-slate-500"><i className="fas fa-fire text-orange-500 mr-1"></i> Terpopuler</span>
+                    {/* --- DAFTAR PERTANYAAN --- */}
+                    <div className="flex-1 mt-4">
+                        <div className="flex justify-between items-center mb-6 px-1">
+                            <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                Diskusi Berlangsung 
+                                <span className="bg-slate-200 text-slate-700 text-xs py-0.5 px-2.5 rounded-full">{questions.length}</span>
+                            </h2>
+                            <span className="text-xs font-semibold text-orange-600 bg-orange-100 py-1 px-3 rounded-full flex items-center gap-1.5">
+                                <i className="fas fa-fire"></i> Urutan Terpopuler
+                            </span>
                         </div>
 
                         {loading ? (
-                            <div className="text-center py-10 text-slate-500">
-                                <i className="fas fa-circle-notch fa-spin text-2xl mb-2 text-blue-500"></i>
-                                <p>Memuat pertanyaan...</p>
+                            <div className="text-center py-12 bg-white rounded-3xl border border-slate-100 shadow-sm">
+                                <i className="fas fa-circle-notch fa-spin text-3xl mb-3 text-blue-500"></i>
+                                <p className="text-slate-500 font-medium">Menyinkronkan data...</p>
                             </div>
                         ) : questions.length === 0 ? (
-                            <div className="text-center py-12 bg-white rounded-2xl border border-slate-100 border-dashed">
-                                <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-3">
-                                    <i className="fas fa-inbox text-2xl text-slate-300"></i>
+                            <div className="text-center py-16 bg-white rounded-3xl border border-slate-200 border-dashed">
+                                <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <i className="fas fa-inbox text-3xl text-slate-300"></i>
                                 </div>
-                                <p className="text-slate-500">Belum ada pertanyaan yang masuk.</p>
-                                <p className="text-sm text-slate-400 mt-1">Jadilah yang pertama bertanya!</p>
+                                <p className="text-slate-600 font-medium">Belum ada pertanyaan.</p>
+                                <p className="text-sm text-slate-400 mt-1">Mari mulai diskusi dengan mengirimkan pertanyaan pertama!</p>
                             </div>
                         ) : (
                             <div className="space-y-4">
                                 {questions.map((q) => (
-                                    <div key={q.id} className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex gap-4 transition-all hover:shadow-md">
-                                        {/* Bagian Kiri: Upvote */}
-                                        <div className="flex flex-col items-center min-w-[50px]">
-                                            <button onClick={() => handleUpvote(q.id, q.upvotes)} className="w-10 h-10 rounded-full bg-slate-50 text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors flex items-center justify-center border border-slate-100">
-                                                <i className="fas fa-caret-up text-2xl"></i>
+                                    <div key={q.id} className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex gap-4 transition-all hover:shadow-md hover:border-blue-100">
+                                        
+                                        {/* Kiri: Tombol Upvote */}
+                                        <div className="flex flex-col items-center min-w-[50px] pt-1">
+                                            <button onClick={() => handleUpvote(q.id, q.upvotes)} className="w-12 h-12 rounded-xl bg-slate-50 text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all flex flex-col items-center justify-center border border-slate-100 hover:border-blue-200 active:scale-95">
+                                                <i className="fas fa-caret-up text-xl leading-none"></i>
+                                                <span className="font-bold text-sm leading-none mt-1">{q.upvotes}</span>
                                             </button>
-                                            <span className="font-bold text-slate-700 mt-1">{q.upvotes}</span>
                                         </div>
 
-                                        {/* Bagian Kanan: Konten */}
+                                        {/* Kanan: Detail Pertanyaan */}
                                         <div className="flex-1">
                                             <div className="flex justify-between items-start mb-2">
                                                 <div>
-                                                    <h3 className="font-bold text-slate-800">{q.nama}</h3>
-                                                    <p className="text-xs text-slate-500"><i className="fas fa-building mr-1"></i> {q.unit}</p>
+                                                    <h3 className="font-bold text-slate-800 text-base">{q.nama}</h3>
+                                                    <p className="text-xs text-slate-500 font-medium mt-0.5"><i className="fas fa-building mr-1.5 text-slate-400"></i>{q.unit}</p>
                                                 </div>
                                                 <div className="flex flex-col items-end gap-2">
-                                                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${q.kategori === 'Cuti' ? 'bg-blue-100 text-blue-700' : 'bg-rose-100 text-rose-700'}`}>
+                                                    <span className={`text-[10px] uppercase tracking-wider font-bold px-2.5 py-1 rounded-md ${q.kategori === 'Cuti' ? 'bg-blue-100 text-blue-700' : 'bg-rose-100 text-rose-700'}`}>
                                                         {q.kategori}
                                                     </span>
                                                     {isAdmin && (
-                                                        <button onClick={() => handleDelete(q.id)} className="text-xs text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 px-2 py-1 rounded transition-colors">
-                                                            <i className="fas fa-trash-alt mr-1"></i> Hapus
+                                                        <button onClick={() => handleDelete(q.id)} className="text-xs font-semibold text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 px-2 py-1.5 rounded-lg transition-colors flex items-center">
+                                                            <i className="fas fa-trash-alt mr-1.5"></i> Hapus
                                                         </button>
                                                     )}
                                                 </div>
                                             </div>
-                                            <p className="text-slate-700 mt-2 leading-relaxed">{q.pertanyaan}</p>
+                                            
+                                            <p className="text-slate-700 mt-3 text-sm leading-relaxed whitespace-pre-wrap">{q.pertanyaan}</p>
+                                            
+                                            {/* Badge Narasumber */}
+                                            <div className="mt-4 pt-3 border-t border-slate-50 flex items-center">
+                                                <span className="text-xs font-medium text-slate-500 flex items-center gap-1.5 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100">
+                                                    <i className="fas fa-reply text-indigo-400"></i>
+                                                    Ditujukan untuk: <strong className="text-indigo-700">{q.narasumber || 'Narasumber Umum'}</strong>
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
                                 ))}
@@ -328,10 +348,11 @@
                         )}
                     </div>
 
-                    {/* Footer */}
-                    <footer className="mt-12 py-6 text-center border-t border-slate-200">
-                        <p className="text-sm text-slate-500 font-medium tracking-wide">
-                            &copy; {new Date().getFullYear()} Sistem Berinovasi. Hak Cipta Muhammad Rizky Arfiansyah.
+                    {/* --- FOOTER --- */}
+                    <footer className="mt-12 py-6 text-center">
+                        <p className="text-sm text-slate-400 font-medium tracking-wide">
+                            &copy; {new Date().getFullYear()} Sistem Berinovasi.<br/>
+                            <span className="text-xs mt-1 block opacity-75">Hak Cipta Muhammad Rizky Arfiansyah.</span>
                         </p>
                     </footer>
                 </div>
