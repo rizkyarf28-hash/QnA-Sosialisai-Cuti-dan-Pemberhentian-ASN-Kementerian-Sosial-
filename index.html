@@ -39,7 +39,12 @@
             const [nama, setNama] = useState('');
             const [unit, setUnit] = useState('');
             const [kategori, setKategori] = useState('Cuti');
-            const [narasumber, setNarasumber] = useState('Narasumber 1');
+            
+            // Nama Narasumber Default
+            const narsum1 = 'Ade Jajang Jatnika Wiralaksana, SH, MH';
+            const narsum2 = 'Kharisma Triyogo, SH, M.A';
+            const [narasumber, setNarasumber] = useState(narsum1);
+            
             const [pertanyaan, setPertanyaan] = useState('');
             const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -208,7 +213,7 @@
                                     </div>
                                 </div>
                                 
-                                {/* Kategori Topik (Update ke 3 Kolom) */}
+                                {/* Kategori Topik */}
                                 <div className="space-y-2">
                                     <label className="block text-sm font-semibold text-slate-700">Kategori Topik</label>
                                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -229,33 +234,37 @@
                                     </div>
                                 </div>
 
-                                {/* Pilihan Narasumber */}
+                                {/* Pilihan Narasumber (1 Kolom agar teks panjang tidak terpotong) */}
                                 <div className="space-y-2">
                                     <label className="block text-sm font-semibold text-slate-700">Tujukan Kepada (Narasumber)</label>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                        <label className={`relative flex items-center p-3 border rounded-xl cursor-pointer transition-all ${narasumber === 'Narasumber 1' ? 'bg-indigo-50 border-indigo-400 ring-1 ring-indigo-400' : 'bg-white border-slate-200 hover:bg-slate-50'}`}>
-                                            <input type="radio" name="narasumber" value="Narasumber 1" checked={narasumber === 'Narasumber 1'} onChange={(e) => setNarasumber(e.target.value)} className="hidden" />
-                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center mr-3 ${narasumber === 'Narasumber 1' ? 'bg-indigo-500 text-white shadow-md' : 'bg-slate-100 text-slate-400'}`}>
-                                                <i className="fas fa-user-tie"></i>
+                                    <div className="grid grid-cols-1 gap-3">
+                                        
+                                        {/* Card Narasumber 1 */}
+                                        <label className={`relative flex items-center p-4 border rounded-xl cursor-pointer transition-all ${narasumber === narsum1 ? 'bg-indigo-50 border-indigo-400 ring-1 ring-indigo-400' : 'bg-white border-slate-200 hover:bg-slate-50'}`}>
+                                            <input type="radio" name="narasumber" value={narsum1} checked={narasumber === narsum1} onChange={(e) => setNarasumber(e.target.value)} className="hidden" />
+                                            <div className={`w-12 h-12 rounded-full flex items-center justify-center mr-4 flex-shrink-0 ${narasumber === narsum1 ? 'bg-indigo-500 text-white shadow-md' : 'bg-slate-100 text-slate-400'}`}>
+                                                <i className="fas fa-user-tie text-lg"></i>
                                             </div>
-                                            <div>
-                                                <p className={`text-sm font-bold ${narasumber === 'Narasumber 1' ? 'text-indigo-800' : 'text-slate-700'}`}>Bapak / Ibu Narasumber 1</p>
-                                                <p className="text-xs text-slate-500">Pakar Kebijakan</p>
+                                            <div className="pr-8">
+                                                <p className={`text-sm font-bold ${narasumber === narsum1 ? 'text-indigo-800' : 'text-slate-700'}`}>Ade Jajang Jatnika Wiralaksana, SH, MH</p>
+                                                <p className="text-xs text-slate-500 mt-1 leading-relaxed">Analis SDM Aparatur Ahli Madya pada Direktorat Status dan Pemberhentian ASN</p>
                                             </div>
-                                            {narasumber === 'Narasumber 1' && <div className="absolute right-3 text-indigo-500"><i className="fas fa-check-circle"></i></div>}
+                                            {narasumber === narsum1 && <div className="absolute right-4 text-indigo-500"><i className="fas fa-check-circle text-xl"></i></div>}
                                         </label>
 
-                                        <label className={`relative flex items-center p-3 border rounded-xl cursor-pointer transition-all ${narasumber === 'Narasumber 2' ? 'bg-indigo-50 border-indigo-400 ring-1 ring-indigo-400' : 'bg-white border-slate-200 hover:bg-slate-50'}`}>
-                                            <input type="radio" name="narasumber" value="Narasumber 2" checked={narasumber === 'Narasumber 2'} onChange={(e) => setNarasumber(e.target.value)} className="hidden" />
-                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center mr-3 ${narasumber === 'Narasumber 2' ? 'bg-indigo-500 text-white shadow-md' : 'bg-slate-100 text-slate-400'}`}>
-                                                <i className="fas fa-user-tie"></i>
+                                        {/* Card Narasumber 2 */}
+                                        <label className={`relative flex items-center p-4 border rounded-xl cursor-pointer transition-all ${narasumber === narsum2 ? 'bg-indigo-50 border-indigo-400 ring-1 ring-indigo-400' : 'bg-white border-slate-200 hover:bg-slate-50'}`}>
+                                            <input type="radio" name="narasumber" value={narsum2} checked={narasumber === narsum2} onChange={(e) => setNarasumber(e.target.value)} className="hidden" />
+                                            <div className={`w-12 h-12 rounded-full flex items-center justify-center mr-4 flex-shrink-0 ${narasumber === narsum2 ? 'bg-indigo-500 text-white shadow-md' : 'bg-slate-100 text-slate-400'}`}>
+                                                <i className="fas fa-user-tie text-lg"></i>
                                             </div>
-                                            <div>
-                                                <p className={`text-sm font-bold ${narasumber === 'Narasumber 2' ? 'text-indigo-800' : 'text-slate-700'}`}>Bapak / Ibu Narasumber 2</p>
-                                                <p className="text-xs text-slate-500">Praktisi SDM</p>
+                                            <div className="pr-8">
+                                                <p className={`text-sm font-bold ${narasumber === narsum2 ? 'text-indigo-800' : 'text-slate-700'}`}>Kharisma Triyogo, SH, M.A</p>
+                                                <p className="text-xs text-slate-500 mt-1 leading-relaxed">Analis SDM Aparatur Ahli Madya dari Direktorat Kinerja dan Pemberhentian ASN</p>
                                             </div>
-                                            {narasumber === 'Narasumber 2' && <div className="absolute right-3 text-indigo-500"><i className="fas fa-check-circle"></i></div>}
+                                            {narasumber === narsum2 && <div className="absolute right-4 text-indigo-500"><i className="fas fa-check-circle text-xl"></i></div>}
                                         </label>
+
                                     </div>
                                 </div>
 
@@ -322,7 +331,6 @@
                                                     <p className="text-xs text-slate-500 font-medium mt-0.5"><i className="fas fa-building mr-1.5 text-slate-400"></i>{q.unit}</p>
                                                 </div>
                                                 <div className="flex flex-col items-end gap-2">
-                                                    {/* Badge Kategori dengan warna dinamis */}
                                                     <span className={`text-[10px] uppercase tracking-wider font-bold px-2.5 py-1 rounded-md ${
                                                         q.kategori === 'Cuti' ? 'bg-blue-100 text-blue-700' : 
                                                         q.kategori === 'Pemberhentian' ? 'bg-rose-100 text-rose-700' : 
