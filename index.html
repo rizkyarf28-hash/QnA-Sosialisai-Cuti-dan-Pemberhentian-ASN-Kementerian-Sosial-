@@ -39,7 +39,7 @@
             const [nama, setNama] = useState('');
             const [unit, setUnit] = useState('');
             const [kategori, setKategori] = useState('Cuti');
-            const [narasumber, setNarasumber] = useState('Narasumber 1'); // State Baru
+            const [narasumber, setNarasumber] = useState('Narasumber 1');
             const [pertanyaan, setPertanyaan] = useState('');
             const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -94,7 +94,7 @@
                                 nama: nama, 
                                 unit: unit, 
                                 kategori: kategori, 
-                                narasumber: narasumber, // Insert Data Baru
+                                narasumber: narasumber,
                                 pertanyaan: pertanyaan, 
                                 upvotes: 0 
                             }
@@ -133,7 +133,6 @@
             const exportToCSV = () => {
                 if (questions.length === 0) return alert('Belum ada pertanyaan.');
 
-                // Header update dengan tambahan kolom Tujuan Narasumber
                 const headers = ['Waktu', 'Nama Lengkap', 'Unit Kerja', 'Kategori', 'Tujuan Narasumber', 'Pertanyaan', 'Jumlah Upvote'];
                 const csvRows = [headers.join(';')]; 
 
@@ -209,27 +208,31 @@
                                     </div>
                                 </div>
                                 
-                                {/* Kategori Topik (Desain Card) */}
+                                {/* Kategori Topik (Update ke 3 Kolom) */}
                                 <div className="space-y-2">
                                     <label className="block text-sm font-semibold text-slate-700">Kategori Topik</label>
-                                    <div className="grid grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                         <label className={`relative flex items-center p-3 border rounded-xl cursor-pointer transition-all ${kategori === 'Cuti' ? 'bg-blue-50 border-blue-400 shadow-sm' : 'bg-white border-slate-200 hover:bg-slate-50'}`}>
                                             <input type="radio" name="kategori" value="Cuti" checked={kategori === 'Cuti'} onChange={() => setKategori('Cuti')} className="w-4 h-4 text-blue-600 ml-1 border-slate-300 focus:ring-blue-500" />
-                                            <span className={`ml-3 text-sm font-medium ${kategori === 'Cuti' ? 'text-blue-800' : 'text-slate-600'}`}>Seputar Cuti</span>
+                                            <span className={`ml-3 text-sm font-medium ${kategori === 'Cuti' ? 'text-blue-800' : 'text-slate-600'}`}>Cuti</span>
                                         </label>
+                                        
                                         <label className={`relative flex items-center p-3 border rounded-xl cursor-pointer transition-all ${kategori === 'Pemberhentian' ? 'bg-rose-50 border-rose-400 shadow-sm' : 'bg-white border-slate-200 hover:bg-slate-50'}`}>
                                             <input type="radio" name="kategori" value="Pemberhentian" checked={kategori === 'Pemberhentian'} onChange={() => setKategori('Pemberhentian')} className="w-4 h-4 text-rose-500 ml-1 border-slate-300 focus:ring-rose-500" />
                                             <span className={`ml-3 text-sm font-medium ${kategori === 'Pemberhentian' ? 'text-rose-800' : 'text-slate-600'}`}>Pemberhentian</span>
                                         </label>
+
+                                        <label className={`relative flex items-center p-3 border rounded-xl cursor-pointer transition-all ${kategori === 'Lain-lain' ? 'bg-amber-50 border-amber-400 shadow-sm' : 'bg-white border-slate-200 hover:bg-slate-50'}`}>
+                                            <input type="radio" name="kategori" value="Lain-lain" checked={kategori === 'Lain-lain'} onChange={() => setKategori('Lain-lain')} className="w-4 h-4 text-amber-500 ml-1 border-slate-300 focus:ring-amber-500" />
+                                            <span className={`ml-3 text-sm font-medium ${kategori === 'Lain-lain' ? 'text-amber-800' : 'text-slate-600'}`}>Lain-lain</span>
+                                        </label>
                                     </div>
                                 </div>
 
-                                {/* Pilihan Narasumber (Desain Card) */}
+                                {/* Pilihan Narasumber */}
                                 <div className="space-y-2">
                                     <label className="block text-sm font-semibold text-slate-700">Tujukan Kepada (Narasumber)</label>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                        
-                                        {/* Card Narasumber 1 */}
                                         <label className={`relative flex items-center p-3 border rounded-xl cursor-pointer transition-all ${narasumber === 'Narasumber 1' ? 'bg-indigo-50 border-indigo-400 ring-1 ring-indigo-400' : 'bg-white border-slate-200 hover:bg-slate-50'}`}>
                                             <input type="radio" name="narasumber" value="Narasumber 1" checked={narasumber === 'Narasumber 1'} onChange={(e) => setNarasumber(e.target.value)} className="hidden" />
                                             <div className={`w-10 h-10 rounded-full flex items-center justify-center mr-3 ${narasumber === 'Narasumber 1' ? 'bg-indigo-500 text-white shadow-md' : 'bg-slate-100 text-slate-400'}`}>
@@ -242,7 +245,6 @@
                                             {narasumber === 'Narasumber 1' && <div className="absolute right-3 text-indigo-500"><i className="fas fa-check-circle"></i></div>}
                                         </label>
 
-                                        {/* Card Narasumber 2 */}
                                         <label className={`relative flex items-center p-3 border rounded-xl cursor-pointer transition-all ${narasumber === 'Narasumber 2' ? 'bg-indigo-50 border-indigo-400 ring-1 ring-indigo-400' : 'bg-white border-slate-200 hover:bg-slate-50'}`}>
                                             <input type="radio" name="narasumber" value="Narasumber 2" checked={narasumber === 'Narasumber 2'} onChange={(e) => setNarasumber(e.target.value)} className="hidden" />
                                             <div className={`w-10 h-10 rounded-full flex items-center justify-center mr-3 ${narasumber === 'Narasumber 2' ? 'bg-indigo-500 text-white shadow-md' : 'bg-slate-100 text-slate-400'}`}>
@@ -254,7 +256,6 @@
                                             </div>
                                             {narasumber === 'Narasumber 2' && <div className="absolute right-3 text-indigo-500"><i className="fas fa-check-circle"></i></div>}
                                         </label>
-
                                     </div>
                                 </div>
 
@@ -321,7 +322,12 @@
                                                     <p className="text-xs text-slate-500 font-medium mt-0.5"><i className="fas fa-building mr-1.5 text-slate-400"></i>{q.unit}</p>
                                                 </div>
                                                 <div className="flex flex-col items-end gap-2">
-                                                    <span className={`text-[10px] uppercase tracking-wider font-bold px-2.5 py-1 rounded-md ${q.kategori === 'Cuti' ? 'bg-blue-100 text-blue-700' : 'bg-rose-100 text-rose-700'}`}>
+                                                    {/* Badge Kategori dengan warna dinamis */}
+                                                    <span className={`text-[10px] uppercase tracking-wider font-bold px-2.5 py-1 rounded-md ${
+                                                        q.kategori === 'Cuti' ? 'bg-blue-100 text-blue-700' : 
+                                                        q.kategori === 'Pemberhentian' ? 'bg-rose-100 text-rose-700' : 
+                                                        'bg-amber-100 text-amber-700'
+                                                    }`}>
                                                         {q.kategori}
                                                     </span>
                                                     {isAdmin && (
